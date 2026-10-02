@@ -10,23 +10,30 @@ export default function Home() {
         Hello <span className="text-primary">World</span>
       </h1>
       <p className="mt-4 max-w-md text-lg text-muted">
-        A tiny Next.js app on Vercel that reads jokes from Supabase and keeps
-        the good stuff behind Google sign-in.
+        Upload a photo, let Claude describe it and write the captions, then let
+        the crowd vote on which joke actually lands.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link
-          href="/jokes"
+          href="/gallery"
           className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow transition hover:brightness-110"
         >
-          Browse jokes
+          Enter the Caption Arena
         </Link>
         <Link
-          href="/profile"
+          href="/upload"
           className="rounded-full border-2 border-primary px-5 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/10"
         >
-          Members area →
+          Upload a photo →
         </Link>
       </div>
+      <p className="mt-10 text-xs text-muted">
+        Also here: the{" "}
+        <Link href="/jokes" className="underline">
+          jokes table
+        </Link>{" "}
+        from Week 2.
+      </p>
     </main>
   );
 }

@@ -39,10 +39,55 @@
   --color-accent-foreground: var(--accent-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-meme: var(--font-anton);
+  --animate-pop: pop 0.45s ease-out;
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Classic meme lettering: big, white, with a hard black outline. */
+.meme-text {
+  font-family: var(--font-anton), Impact, "Arial Black", sans-serif;
+  font-size: clamp(1.1rem, 3.2vw, 2.2rem);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000,
+    0 3px 6px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35) rotate(-6deg); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--drift, 0px), 110vh) rotate(540deg); opacity: 0.6; }
+}
+.confetti-piece {
+  animation: confetti-fall 3s cubic-bezier(0.3, 0.6, 0.6, 1) forwards;
+}
+
+/* A soft scanning band while the model "looks" at the photo. */
+@keyframes scan {
+  0% { top: -6rem; }
+  100% { top: 100%; }
+}
+.scan-line {
+  background: linear-gradient(to bottom, transparent, rgba(245, 180, 0, 0.45), transparent);
+  animation: scan 1.6s linear infinite;
 }
