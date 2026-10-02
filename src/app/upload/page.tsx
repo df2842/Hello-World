@@ -10,7 +10,7 @@ export default function UploadPage() {
       </span>
       <h1 className="mt-3 text-4xl font-bold">Feed the caption machine</h1>
       <p className="mt-2 max-w-xl text-muted">
-        Upload a photo. Claude describes what it sees, then a second prompt turns that
+        Upload a photo. Gemini describes what it sees, then a second prompt turns that
         description into captions. You get to watch it happen.
       </p>
       <div className="mt-8">

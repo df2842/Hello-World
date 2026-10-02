@@ -99,7 +99,7 @@ export default function CaptionStage({ image, signedIn, isOwner }: Props) {
         </ol>
 
         <details className="mt-6 rounded-2xl border border-border bg-card p-4 text-sm">
-          <summary className="cursor-pointer font-medium">What Claude saw</summary>
+          <summary className="cursor-pointer font-medium">What Gemini saw</summary>
           <p className="mt-2 leading-relaxed text-muted">{image.description}</p>
         </details>
 

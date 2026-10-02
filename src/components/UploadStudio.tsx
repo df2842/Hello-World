@@ -7,7 +7,7 @@ type Step = "idle" | "uploading" | "describing" | "described" | "captioned" | "s
 
 const STEPS: { key: Step; label: string; detail: string; emoji: string }[] = [
   { key: "uploading", label: "Uploading", detail: "Shrinking and sending your photo", emoji: "📤" },
-  { key: "describing", label: "Looking", detail: "Claude studies the picture and describes it", emoji: "👀" },
+  { key: "describing", label: "Looking", detail: "Gemini studies the picture and describes it", emoji: "👀" },
   { key: "captioned", label: "Writing jokes", detail: "The description is handed to a caption writer", emoji: "✍️" },
   { key: "saving", label: "Saving", detail: "Image and captions go into Supabase", emoji: "💾" },
 ];
@@ -235,7 +235,7 @@ export default function UploadStudio() {
 
         {typed && (
           <div className="mt-6 rounded-2xl bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Claude saw</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Gemini saw</p>
             <p className="mt-1 text-sm leading-relaxed">
               {typed}
               {typed.length < description.length && <span className="animate-pulse">▍</span>}

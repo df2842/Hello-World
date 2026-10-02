@@ -21,7 +21,7 @@ export default async function GalleryPage() {
             Photos in. <span className="text-primary">Jokes out.</span> You judge.
           </h1>
           <p className="mt-2 max-w-xl text-muted">
-            Every photo here was described by Claude, then captioned by Claude. The crowd decides
+            Every photo here was described by Gemini, then captioned by Gemini. The crowd decides
             which caption actually lands.
           </p>
         </div>
@@ -70,7 +70,7 @@ export default async function GalleryPage() {
           <div className="rounded-3xl border-4 border-dashed border-border p-16 text-center">
             <p className="text-5xl">🫥</p>
             <p className="mt-4 text-lg font-semibold">Nothing to laugh at yet</p>
-            <p className="mt-1 text-muted">Be the first to upload a photo and let Claude take a swing.</p>
+            <p className="mt-1 text-muted">Be the first to upload a photo and let Gemini take a swing.</p>
             <Link
               href="/upload"
               className="mt-6 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"

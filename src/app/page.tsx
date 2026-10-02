@@ -10,7 +10,7 @@ export default function Home() {
         Hello <span className="text-primary">World</span>
       </h1>
       <p className="mt-4 max-w-md text-lg text-muted">
-        Upload a photo, let Claude describe it and write the captions, then let
+        Upload a photo, let Gemini describe it and write the captions, then let
         the crowd vote on which joke actually lands.
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">

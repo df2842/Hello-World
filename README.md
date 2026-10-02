@@ -11,7 +11,7 @@ A Next.js app deployed on Vercel.
   exchanges it for a Supabase session using `@supabase/ssr`. No Google client
   secret is needed.
 - **Week 4:** the Caption Arena. Signed-in users upload a photo at `/upload`;
-  a two-step prompt chain (Claude describes the image, then Claude writes
+  a two-step prompt chain (Gemini describes the image, then Gemini writes
   captions from that description) stores the image in Supabase Storage and
   the captions in Postgres. Everyone can browse `/gallery`; signed-in users
   vote captions up or down, and each vote is a row in the `votes` table.
@@ -26,7 +26,7 @@ A Next.js app deployed on Vercel.
    *Authorized JavaScript origins* and `<origin>/auth/callback` to
    *Authorized redirect URIs*.
 3. In Supabase, enable the Google auth provider and paste the Client ID.
-4. Create an Anthropic API key.
+4. Create a free Gemini API key in Google AI Studio.
 5. Copy `.env.example` to `.env.local` and fill in all four variables.
 6. Add the same variables to the Vercel project.
 
