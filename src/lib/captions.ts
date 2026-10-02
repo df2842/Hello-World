@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-/** Gemini 2.5 Flash: multimodal, fast, and on the Gemini API free tier. */
-export const MODEL = "gemini-2.5-flash";
+/** Gemini 3.8 Flash: multimodal, fast, and on the Gemini API free tier. */
+export const MODEL = "gemini-3.8-flash";
 
 export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
 
@@ -32,7 +32,6 @@ export async function describeImage(
         "who or what is in the frame, expressions, body language, setting, text in the image, " +
         "and anything odd, awkward or surprising. Two to four sentences of plain prose, no lists.",
       temperature: 0.6,
-      thinkingConfig: { thinkingBudget: 0 },
     },
   });
 
@@ -57,7 +56,6 @@ export async function writeCaptions(description: string): Promise<string[]> {
         "single sentence under 90 characters, no hashtags, no emojis, no quotation marks. " +
         "Keep it PG-13 and never mock real people's appearance.",
       temperature: 1.0,
-      thinkingConfig: { thinkingBudget: 0 },
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
