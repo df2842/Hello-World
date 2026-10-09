@@ -41,7 +41,9 @@
   --font-mono: var(--font-geist-mono);
   --font-meme: var(--font-anton);
   --animate-pop: pop 0.45s ease-out;
-  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  /* "backwards" (not "both") so the animation lets go of transform/opacity
+     when it ends; Rate mode drives those with inline styles. */
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
 body {
@@ -61,6 +63,16 @@ body {
   text-shadow:
     -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000,
     0 3px 6px rgba(0, 0, 0, 0.6);
+}
+
+.meme-text.meme-sm {
+  font-size: 1rem;
+}
+
+/* Card-sized memes scale with the card (needs an @container parent), so a
+   long joke never buries the whole photo on wide screens. */
+.meme-text.meme-card {
+  font-size: clamp(1.05rem, 6.5cqi, 1.9rem);
 }
 
 @keyframes pop {

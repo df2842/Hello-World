@@ -23,14 +23,21 @@ export type CaptionScore = {
   downvotes: number;
 };
 
+export type Vote = -1 | 0 | 1;
+
 /** A caption with its vote totals and the current viewer's own vote. */
 export type ScoredCaption = CaptionRow & {
   score: number;
   upvotes: number;
   downvotes: number;
-  myVote: -1 | 0 | 1;
+  myVote: Vote;
 };
 
 export type ImageWithCaptions = ImageRow & {
   captions: ScoredCaption[];
+};
+
+/** A caption bundled with the picture it belongs to. */
+export type CaptionWithImage = ScoredCaption & {
+  image: Pick<ImageRow, "id" | "public_url" | "description" | "user_id">;
 };

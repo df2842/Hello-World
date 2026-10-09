@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { NEXT_COOKIE, safeNext, sameOriginUrl } from "@/lib/safe-next";
 
 const NONCE_COOKIE = "google_nonce";
 
@@ -40,8 +41,10 @@ export async function POST(request: NextRequest) {
     return toLogin(request, "Sign-in attempt expired. Please try again.");
   }
 
-  const response = NextResponse.redirect(new URL("/profile", request.url), 303);
+  const destination = safeNext(request.cookies.get(NEXT_COOKIE)?.value);
+  const response = NextResponse.redirect(sameOriginUrl(destination, request.url), 303);
   response.cookies.set(NONCE_COOKIE, "", { path: "/auth/callback", maxAge: 0 });
+  response.cookies.set(NEXT_COOKIE, "", { path: "/auth/callback", maxAge: 0 });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

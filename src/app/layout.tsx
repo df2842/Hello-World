@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Anton, Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import "./globals.css";
 
@@ -34,7 +35,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <NavBar />
         {children}
         <footer className="border-t border-border py-6 text-center text-xs text-muted">
-          Built with Next.js, Supabase and Vercel
+          <p>Built with Next.js, Supabase, Gemini Flash-Lite and Vercel</p>
+          <p className="mt-2 space-x-3">
+            <Link href="/jokes" className="hover:text-primary">
+              Week 2: Jokes table
+            </Link>
+            <Link href="/profile" className="hover:text-primary">
+              Week 3: Profile
+            </Link>
+            <a href="https://github.com/df2842/Hello-World" className="hover:text-primary">
+              Source on GitHub
+            </a>
+          </p>
         </footer>
       </body>
     </html>

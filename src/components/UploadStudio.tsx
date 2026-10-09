@@ -2,30 +2,37 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import StylePicker from "@/components/StylePicker";
+import { prettyModel, type JokeStyle } from "@/lib/joke-styles";
 
 type Step = "idle" | "uploading" | "describing" | "described" | "captioned" | "saving" | "done" | "error";
 
 const STEPS: { key: Step; label: string; detail: string; emoji: string }[] = [
   { key: "uploading", label: "Uploading", detail: "Shrinking and sending your photo", emoji: "📤" },
-  { key: "describing", label: "Looking", detail: "Gemini studies the picture and describes it", emoji: "👀" },
-  { key: "captioned", label: "Writing jokes", detail: "The description is handed to a caption writer", emoji: "✍️" },
+  { key: "describing", label: "Looking", detail: "A vision model studies the picture and describes it", emoji: "👀" },
+  { key: "captioned", label: "Writing jokes", detail: "The description goes to a second prompt that writes jokes", emoji: "✍️" },
   { key: "saving", label: "Saving", detail: "Image and captions go into Supabase", emoji: "💾" },
 ];
 
 const ORDER: Step[] = ["idle", "uploading", "describing", "described", "captioned", "saving", "done"];
 const rank = (s: Step) => ORDER.indexOf(s);
 
-/** Downscale to a JPEG so uploads are fast and the model gets a reasonable image. */
+/**
+ * Downscale to a JPEG so uploads are fast and the model gets a reasonable
+ * image. GIFs become a JPEG of their first frame, since the AI can't read GIFs.
+ */
 async function shrink(file: File, maxEdge = 1600): Promise<Blob> {
-  if (file.type === "image/gif") return file; // keep animation
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await createImageBitmap(file).catch(() => {
+    throw new Error("Your browser couldn't open this image. Try a JPEG or PNG.");
+  });
   const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.86));
-  return blob ?? file;
+  if (!blob) throw new Error("Your browser couldn't process this image. Try a JPEG or PNG.");
+  return blob;
 }
 
 export default function UploadStudio() {
@@ -39,6 +46,8 @@ export default function UploadStudio() {
   const [typed, setTyped] = useState("");
   const [captions, setCaptions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [style, setStyle] = useState<JokeStyle>("mixed");
+  const [models, setModels] = useState<{ see?: string; joke?: string }>({});
 
   // Release the last preview URL when the component unmounts.
   const previewRef = useRef<string | null>(null);
@@ -71,6 +80,7 @@ export default function UploadStudio() {
     setDescription("");
     setTyped("");
     setCaptions([]);
+    setModels({});
     setFile(f);
     if (previewRef.current) URL.revokeObjectURL(previewRef.current);
     previewRef.current = URL.createObjectURL(f);
@@ -86,11 +96,16 @@ export default function UploadStudio() {
   const generate = async () => {
     if (!file) return;
     setError(null);
+    setDescription("");
+    setTyped("");
+    setCaptions([]);
+    setModels({});
     setStep("uploading");
     try {
       const blob = await shrink(file);
       const form = new FormData();
-      form.append("file", blob, file.name.replace(/\.[^.]+$/, "") + (blob.type === "image/gif" ? ".gif" : ".jpg"));
+      form.append("file", blob, file.name.replace(/\.[^.]+$/, "") + ".jpg");
+      form.append("style", style);
 
       const res = await fetch("/api/images", { method: "POST", body: form });
       if (!res.ok || !res.body) {
@@ -113,8 +128,14 @@ export default function UploadStudio() {
           if (!line.trim()) continue;
           const event = JSON.parse(line);
           if (event.step === "error") throw new Error(event.message);
-          if (event.step === "described") setDescription(event.description);
-          if (event.step === "captioned") setCaptions(event.captions);
+          if (event.step === "described") {
+            setDescription(event.description);
+            setModels((m) => ({ ...m, see: event.model }));
+          }
+          if (event.step === "captioned") {
+            setCaptions(event.captions);
+            setModels((m) => ({ ...m, joke: event.model }));
+          }
           if (event.step === "done") finalId = event.id;
           setStep(event.step);
         }
@@ -177,6 +198,11 @@ export default function UploadStudio() {
           )}
         </div>
 
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-semibold">Joke style</p>
+          <StylePicker value={style} onChange={setStyle} disabled={busy} />
+        </div>
+
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -184,7 +210,7 @@ export default function UploadStudio() {
             onClick={generate}
             className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow transition hover:brightness-110 disabled:opacity-40"
           >
-            {busy ? "Working…" : step === "done" ? "Done!" : "Generate captions ✨"}
+            {busy ? "Working…" : step === "done" ? "Done!" : "Write jokes about it ✨"}
           </button>
           {file && !busy && (
             <button
@@ -195,7 +221,11 @@ export default function UploadStudio() {
               Choose another
             </button>
           )}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
         </div>
       </div>
 
@@ -235,7 +265,9 @@ export default function UploadStudio() {
 
         {typed && (
           <div className="mt-6 rounded-2xl bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Gemini saw</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {prettyModel(models.see)} saw
+            </p>
             <p className="mt-1 text-sm leading-relaxed">
               {typed}
               {typed.length < description.length && <span className="animate-pulse">▍</span>}
@@ -243,8 +275,13 @@ export default function UploadStudio() {
           </div>
         )}
 
+        {captions.length > 0 && models.joke && (
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted">
+            {prettyModel(models.joke)} wrote
+          </p>
+        )}
         {captions.length > 0 && (
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-2 space-y-2">
             {captions.map((c, i) => (
               <li
                 key={c}
@@ -259,7 +296,7 @@ export default function UploadStudio() {
 
         {step === "done" && (
           <p className="mt-4 animate-rise text-sm font-semibold text-primary">
-            Saved! Taking you to the voting booth…
+            Saved! Taking you to your picture so you can vote…
           </p>
         )}
       </div>

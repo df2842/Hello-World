@@ -1,8 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNext, sameOriginUrl } from "@/lib/safe-next";
 
 /** Routes that require a signed-in user. */
-const PROTECTED_PREFIXES = ["/profile", "/upload"];
+const PROTECTED_PREFIXES = ["/profile", "/upload", "/me"];
+
+function isProtected(pathname: string) {
+  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
 
 /**
  * Refreshes the Supabase session cookie on every request and redirects
@@ -37,21 +42,18 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  const { pathname, search } = request.nextUrl;
 
-  if (!user && isProtected) {
+  if (!user && isProtected(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.search = `?next=${encodeURIComponent(pathname)}`;
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
   }
 
   if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/profile";
-    url.search = "";
-    return NextResponse.redirect(url);
+    const target = sameOriginUrl(safeNext(request.nextUrl.searchParams.get("next")), request.url);
+    return NextResponse.redirect(target);
   }
 
   return response;

@@ -17,6 +17,21 @@ A Next.js app deployed on Vercel.
   vote captions up or down, and each vote is a row in the `votes` table.
   Every table has row level security; votes are readable only by their owner
   and totals come from an aggregate view.
+- **Week 5:** iteration on feedback.
+  - **Cheaper, available model.** Captions now come from Gemini 3.5 Flash-Lite,
+    with automatic fallback to 3.1 Flash-Lite and the latest Flash-Lite when a
+    model is busy, plus a 12-second timeout per attempt.
+  - **Upvote and downvote everywhere.** Thumbs up and down with counts on every
+    gallery card, the picture page, and My Jokes.
+  - **Rate mode** at `/rate` serves one joke at a time with swipe, arrow keys,
+    undo, and a reveal of how the crowd voted.
+  - **My Jokes** at `/me` shows your stats, every joke across all your
+    pictures ranked by votes, and your vote history.
+  - **Jokes attached to the picture.** Pick a joke style before uploading,
+    ask for more jokes on your own pictures, and download a meme with the joke
+    burned in.
+  - Sign-in returns you to the page you came from, the nav works on mobile, and
+    a daily Vercel cron keeps the free Supabase project from pausing.
 
 ## Setup
 

@@ -18,7 +18,7 @@ declare global {
  * Renders the official Sign in with Google button in redirect mode.
  * Google POSTs the ID token straight to /auth/callback on this origin.
  */
-export default function GoogleSignIn({ clientId }: { clientId: string }) {
+export default function GoogleSignIn({ clientId, next }: { clientId: string; next?: string }) {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,8 @@ export default function GoogleSignIn({ clientId }: { clientId: string }) {
     if (!google || !parent) return;
 
     try {
-      const res = await fetch("/auth/nonce", { cache: "no-store" });
+      const query = next ? `?next=${encodeURIComponent(next)}` : "";
+      const res = await fetch(`/auth/nonce${query}`, { cache: "no-store" });
       const { nonce } = (await res.json()) as { nonce: string };
 
       google.initialize({
@@ -51,7 +52,7 @@ export default function GoogleSignIn({ clientId }: { clientId: string }) {
     } catch {
       setError("Could not start Google sign-in. Please reload and try again.");
     }
-  }, [clientId]);
+  }, [clientId, next]);
 
   return (
     <div className="flex flex-col items-center gap-3">
