@@ -6,7 +6,6 @@ import MemeActions from "@/components/MemeActions";
 import MoreJokes from "@/components/MoreJokes";
 import VoteButtons from "@/components/VoteButtons";
 import { deleteImage } from "@/app/actions/votes";
-import { prettyModel } from "@/lib/joke-styles";
 import type { ImageWithCaptions } from "@/lib/types";
 
 type Props = {
@@ -16,13 +15,14 @@ type Props = {
 };
 
 /**
- * The detail view: the photo with whichever joke is selected burned in, and
- * every joke for this picture with thumbs up/down. ↑/↓ switch jokes.
+ * The photo page: the photo, and its jokes one at a time underneath (or
+ * beside it on wide or short screens), each with big 👍/👎 buttons. The ← / →
+ * buttons or arrow keys flip between jokes. Everything fits on one screen.
  */
 export default function CaptionStage({ image, signedIn, isOwner }: Props) {
   const router = useRouter();
   // Votes refresh the page with re-ranked jokes; keep the order the viewer
-  // first saw so nothing jumps under their cursor. New jokes go at the end.
+  // first saw so nothing jumps. New jokes go at the end.
   const [initialOrder] = useState(() => image.captions.map((c) => c.id));
   const rank = new Map(initialOrder.map((id, i) => [id, i]));
   const captions = [...image.captions].sort(
@@ -31,27 +31,32 @@ export default function CaptionStage({ image, signedIn, isOwner }: Props) {
 
   const [activeId, setActiveId] = useState(captions[0]?.id ?? null);
   const [deleting, startDelete] = useTransition();
-  const active = captions.find((c) => c.id === activeId) ?? captions[0];
-  const totalVotes = captions.reduce((n, c) => n + c.upvotes + c.downvotes, 0);
+  const index = Math.max(0, captions.findIndex((c) => c.id === activeId));
+  const active = captions[index];
+
+  const go = (delta: number) => {
+    if (captions.length === 0) return;
+    const next = (index + delta + captions.length) % captions.length;
+    setActiveId(captions[next].id);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-      const target = e.target as HTMLElement | null;
-      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
-      if (captions.length === 0) return;
+      if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (document.querySelector("dialog[open]")) return;
+      if (e.key === "ArrowRight") go(1);
+      else if (e.key === "ArrowLeft") go(-1);
+      else return;
       e.preventDefault();
-      const i = captions.findIndex((c) => c.id === activeId);
-      const next = e.key === "ArrowDown" ? i + 1 : i - 1;
-      const wrapped = (next + captions.length) % captions.length;
-      setActiveId(captions[wrapped].id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeId, captions]);
+  });
 
   const remove = () => {
-    if (!confirm("Delete this picture and all its jokes and votes?")) return;
+    if (!confirm("Delete this photo and all its jokes and votes?")) return;
     startDelete(async () => {
       let result;
       try {
@@ -67,102 +72,87 @@ export default function CaptionStage({ image, signedIn, isOwner }: Props) {
     });
   };
 
+  const deleteButton = isOwner ? (
+    <button
+      type="button"
+      onClick={remove}
+      disabled={deleting}
+      className="btn btn-sm flex-1 border-2 border-down/40 bg-card text-down shadow-none hover:bg-down/10"
+    >
+      {deleting ? "Deleting…" : "🗑 Delete"}
+    </button>
+  ) : null;
+
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
-      <div className="self-start lg:sticky lg:top-20">
-        <figure className="relative overflow-hidden rounded-3xl border border-border bg-black shadow-xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image.public_url} alt={image.description} className="block max-h-[70vh] w-full object-contain" />
-          {active && (
-            <figcaption
+    <div className="flex min-h-0 flex-1 flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-5 short:grid short:grid-cols-2">
+      <figure className="relative min-h-20 flex-1 overflow-hidden rounded-3xl bg-black shadow-lg lg:h-full short:h-full">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={image.public_url} alt={image.description} className="absolute inset-0 h-full w-full object-contain" />
+      </figure>
+
+      <section
+        aria-label="Jokes for this photo"
+        className="flex shrink-0 flex-col justify-center gap-3 overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-5 lg:h-full lg:gap-4 short:h-full short:gap-2 short:p-3"
+      >
+        {active ? (
+          <>
+            <div className="flex items-center justify-between gap-2">
+              {captions.length > 1 ? (
+                <button type="button" onClick={() => go(-1)} className="btn btn-secondary w-12 px-0" aria-label="Previous joke">
+                  ←
+                </button>
+              ) : (
+                <span />
+              )}
+              <p className="text-center text-sm font-bold text-muted">
+                Joke {index + 1} of {captions.length}
+                {index === 0 && active.score > 0 && " · 👑"}
+              </p>
+              {captions.length > 1 ? (
+                <button type="button" onClick={() => go(1)} className="btn btn-secondary w-12 px-0" aria-label="Next joke">
+                  →
+                </button>
+              ) : (
+                <span />
+              )}
+            </div>
+            <p
               key={active.id}
-              className="meme-text pointer-events-none absolute inset-x-0 top-0 animate-rise p-5 text-center"
+              title={active.text}
+              className={`line-clamp-4 animate-rise text-center font-bold leading-snug short:line-clamp-2 ${
+                active.text.length > 80 ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"
+              }`}
             >
               {active.text}
-            </figcaption>
-          )}
-        </figure>
-        {active && (
-          <div className="mt-3">
-            <MemeActions imageUrl={image.public_url} text={active.text} sharePath={`/gallery/${image.id}`} />
-          </div>
-        )}
-      </div>
-
-      <div>
-        <h2 className="text-xl font-bold">Which joke lands?</h2>
-        <p className="mt-1 text-sm text-muted">
-          👍 if it made you smile, 👎 if it didn&apos;t. Click a joke to put it on the photo, or use ↑ ↓.
-          {totalVotes > 0 && ` ${totalVotes} vote${totalVotes === 1 ? "" : "s"} so far.`}
-        </p>
-
-        {captions.length === 0 ? (
-          <p className="mt-5 rounded-2xl border border-dashed border-border p-6 text-center text-muted">
-            No jokes for this picture yet.
-          </p>
+            </p>
+            <VoteButtons
+              key={`vote-${active.id}`}
+              captionId={active.id}
+              upvotes={active.upvotes}
+              downvotes={active.downvotes}
+              myVote={active.myVote}
+              signedIn={signedIn}
+              size="lg"
+              stretch
+            />
+            <div className="flex gap-1.5">
+              <MemeActions imageUrl={image.public_url} text={active.text} sharePath={`/gallery/${image.id}`} />
+              {isOwner && <MoreJokes imageId={image.id} />}
+              {deleteButton}
+            </div>
+          </>
         ) : (
-          <ol className="mt-5 space-y-3">
-            {captions.map((c, i) => {
-              const selected = c.id === active?.id;
-              return (
-                <li
-                  key={c.id}
-                  className={`rounded-2xl border p-4 transition ${
-                    selected
-                      ? "border-primary bg-primary/5 shadow-md"
-                      : "border-border bg-card hover:border-primary/50"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setActiveId(c.id)}
-                    className="flex w-full items-start gap-2 text-left"
-                    aria-pressed={selected}
-                  >
-                    <span className="inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-accent px-1 text-xs font-bold text-accent-foreground">
-                      {i === 0 && c.score > 0 ? "👑" : i + 1}
-                    </span>
-                    <span className="font-medium">{c.text}</span>
-                  </button>
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-8">
-                    <VoteButtons
-                      captionId={c.id}
-                      upvotes={c.upvotes}
-                      downvotes={c.downvotes}
-                      myVote={c.myVote}
-                      signedIn={signedIn}
-                      size="sm"
-                    />
-                    <span className="text-[11px] text-muted">by {prettyModel(c.model)}</span>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-
-        {isOwner && (
-          <div className="mt-6">
-            <MoreJokes imageId={image.id} compact />
+          <div className="text-center">
+            <p className="font-bold">No jokes for this photo yet.</p>
+            {isOwner && (
+              <div className="mt-3 flex justify-center gap-2">
+                <MoreJokes imageId={image.id} />
+                {deleteButton}
+              </div>
+            )}
           </div>
         )}
-
-        <details className="mt-6 rounded-2xl border border-border bg-card p-4 text-sm">
-          <summary className="cursor-pointer font-medium">What the AI saw (step 1 of the prompt chain)</summary>
-          <p className="mt-2 leading-relaxed text-muted">{image.description}</p>
-        </details>
-
-        {isOwner && (
-          <button
-            type="button"
-            onClick={remove}
-            disabled={deleting}
-            className="mt-4 text-xs text-muted underline-offset-2 hover:text-red-600 hover:underline disabled:opacity-50"
-          >
-            {deleting ? "Deleting…" : "Delete this picture"}
-          </button>
-        )}
-      </div>
+      </section>
     </div>
   );
 }

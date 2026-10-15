@@ -87,11 +87,7 @@ export default function RateDeck({
         const down = current.downvotes + (vote === -1 ? 1 : 0);
         const total = up + down;
         const agree = Math.round(((vote === 1 ? up : down) / total) * 100);
-        setReveal(
-          total === 1
-            ? "First vote on this joke!"
-            : `${agree}% of ${total} voters agree with you · 👍 ${up} 👎 ${down}`,
-        );
+        setReveal(total === 1 ? "First vote on this joke!" : `${agree}% agree with you`);
         save(current.id, vote);
       } else {
         setReveal(null);
@@ -139,22 +135,15 @@ export default function RateDeck({
 
   if (queue.length === 0) {
     return (
-      <div className="mx-auto max-w-lg rounded-3xl border-4 border-dashed border-border p-12 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-3xl border-4 border-dashed border-border p-8 text-center">
         <p className="text-5xl">{ratedBefore > 0 ? "🏆" : "🫥"}</p>
-        <p className="mt-4 text-xl font-bold">
-          {ratedBefore > 0 ? "You've rated every joke!" : "No jokes to rate yet"}
-        </p>
-        <p className="mt-2 text-muted">
-          {ratedBefore > 0
-            ? `${ratedBefore} vote${ratedBefore === 1 ? "" : "s"} cast. Upload a photo to make more jokes for everyone.`
-            : "Upload a photo and the AI will write the first batch."}
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Link href="/upload" className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow">
-            Upload a photo
+        <p className="text-xl font-extrabold">{ratedBefore > 0 ? "You've rated every joke!" : "No jokes to rate yet"}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Link href="/upload" className="btn btn-lg btn-primary">
+            📸 Upload a photo
           </Link>
-          <Link href="/gallery" className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold">
-            Browse the Arena
+          <Link href="/gallery" className="btn btn-lg btn-secondary">
+            🏟️ Arena
           </Link>
         </div>
       </div>
@@ -165,31 +154,27 @@ export default function RateDeck({
     const ups = history.filter((h) => h.vote === 1).length;
     const downs = history.filter((h) => h.vote === -1).length;
     return (
-      <div className="mx-auto max-w-lg animate-rise rounded-3xl border border-border bg-card p-10 text-center shadow-sm">
+      <div className="flex flex-1 animate-rise flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
         <p className="text-5xl">🎉</p>
-        <p className="mt-4 text-2xl font-bold">Deck cleared!</p>
-        <p className="mt-2 text-muted">
-          You laughed at {ups}, shrugged at {downs}
-          {history.length - ups - downs > 0 ? ` and skipped ${history.length - ups - downs}` : ""}.
+        <p className="text-2xl font-extrabold">Deck cleared!</p>
+        <p className="text-lg font-semibold">
+          👍 {ups} · 👎 {downs}
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={() => window.location.reload()}
             disabled={saving > 0}
-            className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow disabled:opacity-60"
+            className="btn btn-lg btn-primary"
           >
-            {saving > 0 ? "Saving votes…" : "Load more jokes"}
+            {saving > 0 ? "Saving votes…" : "⚡ More jokes"}
           </button>
-          <Link href="/gallery" className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold">
-            See the leaderboard
-          </Link>
-          <Link href="/upload" className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold">
-            Upload a photo
+          <Link href="/upload" className="btn btn-lg btn-secondary">
+            📸 Upload
           </Link>
         </div>
         {history.length > 0 && (
-          <button type="button" onClick={undo} className="mt-4 text-xs text-muted hover:text-primary">
+          <button type="button" onClick={undo} className="btn btn-sm btn-secondary">
             ↩ Undo last
           </button>
         )}
@@ -203,127 +188,117 @@ export default function RateDeck({
   const intent = dragX > 40 ? "up" : dragX < -40 ? "down" : null;
 
   return (
-    <div className="mx-auto max-w-xl">
-      <div className="mb-3 flex items-center justify-between text-sm text-muted">
-        <span>
-          Joke {index + 1} of {queue.length}
-        </span>
-        <div className="h-2 w-40 overflow-hidden rounded-full bg-border" aria-hidden>
+    <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-3 short:max-w-3xl short:gap-2">
+      <div className="flex shrink-0 items-center gap-3">
+        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-border" aria-hidden>
           <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(index / queue.length) * 100}%` }} />
         </div>
-      </div>
-
-      {!signedIn && (
-        <p className="mb-3 rounded-2xl border border-accent bg-accent/15 px-4 py-2 text-sm">
-          You&apos;re previewing.{" "}
-          <button type="button" onClick={goSignIn} className="font-semibold text-primary underline">
-            Sign in
-          </button>{" "}
-          to vote. It takes one click with Google.
-        </p>
-      )}
-
-      {/* The entrance animation lives on this wrapper; the card inside is moved
-          by inline transform/opacity, which a running animation would override. */}
-      <div key={current.id} className="animate-rise">
-      <div
-        className="relative touch-pan-y select-none overflow-hidden rounded-3xl border border-border bg-black shadow-xl"
-        style={{
-          transform: `translateX(${offset}px) translateY(${leaving === "down" ? 80 : 0}px) rotate(${tilt}deg)`,
-          opacity: leaving ? 0 : 1,
-          transition: dragging ? "none" : "transform 0.26s ease-out, opacity 0.26s ease-out",
-        }}
-        onPointerDown={(e) => {
-          if (e.pointerType === "mouse" && e.button !== 0) return;
-          dragStart.current = e.clientX;
-          setDragging(true);
-          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-        }}
-        onPointerMove={(e) => {
-          if (dragStart.current === null) return;
-          setDragX(e.clientX - dragStart.current);
-        }}
-        onPointerUp={() => {
-          if (dragStart.current === null) return;
-          dragStart.current = null;
-          setDragging(false);
-          if (dragX > SWIPE_THRESHOLD) act(1);
-          else if (dragX < -SWIPE_THRESHOLD) act(-1);
-          else setDragX(0);
-        }}
-        onPointerCancel={() => {
-          dragStart.current = null;
-          setDragging(false);
-          setDragX(0);
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={current.image.public_url}
-          alt={current.image.description}
-          draggable={false}
-          className="block max-h-[58vh] w-full object-contain"
-        />
-        <p className="meme-text pointer-events-none absolute inset-x-0 top-0 p-5 text-center">{current.text}</p>
-        {intent && (
-          <span
-            className={`pointer-events-none absolute bottom-6 rounded-xl border-4 px-4 py-1 text-2xl font-black uppercase tracking-wider ${
-              intent === "up"
-                ? "left-6 -rotate-12 border-emerald-400 text-emerald-300"
-                : "right-6 rotate-12 border-rose-400 text-rose-300"
-            }`}
-          >
-            {intent === "up" ? "Funny" : "Meh"}
-          </span>
-        )}
-      </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <button
-          type="button"
-          onClick={() => act(-1)}
-          aria-label="Downvote: not funny (left arrow)"
-          className="flex h-16 items-center justify-center gap-2 rounded-2xl border-2 border-rose-300 bg-card text-lg font-bold text-rose-700 shadow-sm transition hover:bg-rose-50 active:scale-95 dark:text-rose-300 dark:hover:bg-rose-950"
-        >
-          <span aria-hidden className="text-2xl">👎</span> Meh
-        </button>
-        <button
-          type="button"
-          onClick={() => act(0)}
-          aria-label="Skip (down arrow)"
-          className="h-12 rounded-full border border-border bg-card px-4 text-sm font-medium text-muted transition hover:text-foreground active:scale-95"
-        >
-          Skip
-        </button>
-        <button
-          type="button"
-          onClick={() => act(1)}
-          aria-label="Upvote: funny (right arrow)"
-          className="flex h-16 items-center justify-center gap-2 rounded-2xl border-2 border-emerald-300 bg-card text-lg font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-50 active:scale-95 dark:text-emerald-300 dark:hover:bg-emerald-950"
-        >
-          <span aria-hidden className="text-2xl">👍</span> Funny
-        </button>
-      </div>
-
-      <div className="mt-4 flex min-h-6 flex-wrap items-center justify-between gap-2 text-sm">
-        <span role="status" aria-live="polite" className={error ? "text-red-600" : "text-muted"}>
-          {error ?? reveal ?? ""}
+        <span className="text-sm font-bold tabular-nums text-muted">
+          {index + 1} / {queue.length}
         </span>
         {history.length > 0 && (
-          <button type="button" onClick={undo} className="text-muted hover:text-primary">
+          <button type="button" onClick={undo} className="btn btn-sm btn-secondary" title="Undo (Z)">
             ↩ Undo
           </button>
         )}
       </div>
 
-      <p className="mt-6 hidden text-center text-xs text-muted sm:block">
-        Shortcuts: <kbd className="rounded border border-border px-1">←</kbd> meh ·{" "}
-        <kbd className="rounded border border-border px-1">→</kbd> funny ·{" "}
-        <kbd className="rounded border border-border px-1">↓</kbd> skip ·{" "}
-        <kbd className="rounded border border-border px-1">Z</kbd> undo
+      {!signedIn && (
+        <button type="button" onClick={goSignIn} className="btn btn-accent w-full shrink-0 short:h-9">
+          Sign in with Google to vote
+        </button>
+      )}
+
+      {/* The entrance animation lives on this wrapper; the card inside is moved
+          by inline transform/opacity, which a running animation would override. */}
+      <div key={current.id} className="flex min-h-0 flex-1 animate-rise flex-col">
+        <div
+          className="flex min-h-0 flex-1 touch-pan-y select-none flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-xl short:flex-row"
+          style={{
+            transform: `translateX(${offset}px) translateY(${leaving === "down" ? 80 : 0}px) rotate(${tilt}deg)`,
+            opacity: leaving ? 0 : 1,
+            transition: dragging ? "none" : "transform 0.26s ease-out, opacity 0.26s ease-out",
+          }}
+          onPointerDown={(e) => {
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            dragStart.current = e.clientX;
+            setDragging(true);
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (dragStart.current === null) return;
+            setDragX(e.clientX - dragStart.current);
+          }}
+          onPointerUp={() => {
+            if (dragStart.current === null) return;
+            dragStart.current = null;
+            setDragging(false);
+            if (dragX > SWIPE_THRESHOLD) act(1);
+            else if (dragX < -SWIPE_THRESHOLD) act(-1);
+            else setDragX(0);
+          }}
+          onPointerCancel={() => {
+            dragStart.current = null;
+            setDragging(false);
+            setDragX(0);
+          }}
+        >
+          <div className="relative min-h-0 flex-1 bg-black short:basis-1/2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={current.image.public_url}
+              alt={current.image.description}
+              draggable={false}
+              className="absolute inset-0 h-full w-full object-contain"
+            />
+            {intent && (
+              <span
+                className={`pointer-events-none absolute top-4 rounded-xl border-4 bg-black/40 px-4 py-1 text-2xl font-black uppercase tracking-wider ${
+                  intent === "up"
+                    ? "left-4 -rotate-12 border-emerald-400 text-emerald-300"
+                    : "right-4 rotate-12 border-rose-400 text-rose-300"
+                }`}
+              >
+                {intent === "up" ? "Funny" : "Meh"}
+              </span>
+            )}
+          </div>
+          <p
+            title={current.text}
+            className="line-clamp-4 shrink-0 p-4 text-center text-lg font-bold leading-snug sm:text-xl short:basis-1/2 short:self-center short:text-base"
+          >
+            {current.text}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <button
+          type="button"
+          onClick={() => act(-1)}
+          aria-label="Meh, downvote (left arrow)"
+          title="Meh (←)"
+          className="btn btn-lg border-2 border-down bg-down/10 text-down hover:bg-down hover:text-white"
+        >
+          <span aria-hidden className="text-2xl">👎</span> Meh
+        </button>
+        <button type="button" onClick={() => act(0)} aria-label="Skip (down arrow)" title="Skip (↓)" className="btn btn-secondary">
+          Skip
+        </button>
+        <button
+          type="button"
+          onClick={() => act(1)}
+          aria-label="Funny, upvote (right arrow)"
+          title="Funny (→)"
+          className="btn btn-lg border-2 border-up bg-up/10 text-up hover:bg-up hover:text-white"
+        >
+          <span aria-hidden className="text-2xl">👍</span> Funny
+        </button>
+      </div>
+
+      <p role="status" aria-live="polite" className={`min-h-5 shrink-0 text-center text-sm font-semibold ${error ? "text-down" : "text-muted"}`}>
+        {error ?? reveal ?? ""}
       </p>
-      <p className="mt-6 text-center text-xs text-muted sm:hidden">Tip: swipe the picture right for 👍, left for 👎.</p>
     </div>
   );
 }

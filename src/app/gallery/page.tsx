@@ -1,108 +1,59 @@
 import Link from "next/link";
-import MemeCard from "@/components/MemeCard";
-import { getGallery, getLeaderboard } from "@/lib/gallery";
+import { ArenaGrid } from "@/components/StableJokeList";
+import { getGallery } from "@/lib/gallery";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Caption Arena" };
+export const metadata = { title: "Arena" };
 
-const MEDALS = ["🥇", "🥈", "🥉"];
-
-export default async function GalleryPage() {
-  const [{ images, viewerId, error }, leaders] = await Promise.all([getGallery(), getLeaderboard()]);
+export default async function GalleryPage({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
+  const { sort: rawSort } = await searchParams;
+  const sort = rawSort === "top" ? "top" : "new";
+  const { images, viewerId, error } = await getGallery();
   const signedIn = !!viewerId;
 
+  const best = (img: (typeof images)[number]) => img.captions[0]?.score ?? -Infinity;
+  const ordered = sort === "top" ? [...images].sort((a, b) => best(b) - best(a)) : images;
+
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <span className="rounded-full bg-accent/25 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground">
-            Caption Arena
-          </span>
-          <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
-            Photos in. <span className="text-primary">Jokes out.</span> You judge.
-          </h1>
-          <p className="mt-2 max-w-xl text-muted">
-            The AI looks at every photo, then writes jokes about it. Thumbs up the ones that land, thumbs
-            down the ones that don&apos;t.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/rate"
-            className="rounded-full border-2 border-primary px-5 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10"
-          >
-            ⚡ Rate mode
-          </Link>
-          <Link
-            href="/upload"
-            className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow transition hover:brightness-110"
-          >
-            + Upload a photo
+    <main className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6">
+      <header className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold sm:text-3xl">Arena</h1>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-2xl border-2 border-foreground/15 bg-card p-1" role="group" aria-label="Sort">
+            <Link
+              href="/gallery"
+              aria-current={sort === "new" ? "page" : undefined}
+              className={`rounded-xl px-3 py-1.5 text-sm font-bold ${sort === "new" ? "bg-foreground text-background" : "text-muted"}`}
+            >
+              Newest
+            </Link>
+            <Link
+              href="/gallery?sort=top"
+              aria-current={sort === "top" ? "page" : undefined}
+              className={`rounded-xl px-3 py-1.5 text-sm font-bold ${sort === "top" ? "bg-foreground text-background" : "text-muted"}`}
+            >
+              Top
+            </Link>
+          </div>
+          <Link href="/upload" className="btn btn-primary">
+            + Upload
           </Link>
         </div>
       </header>
 
-      {!signedIn && images.length > 0 && (
-        <p className="mt-6 rounded-2xl border border-accent bg-accent/15 px-4 py-2 text-sm">
-          👋 You&apos;re browsing as a guest.{" "}
-          <Link href="/login?next=/gallery" className="font-semibold text-primary underline">
-            Sign in with Google
-          </Link>{" "}
-          to vote and upload your own photos.
-        </p>
+      {error ? (
+        <p className="rounded-2xl border border-red-300 bg-red-50 p-4 text-red-800">Couldn&apos;t load photos: {error}</p>
+      ) : images.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-3xl border-4 border-dashed border-border p-8 text-center">
+          <p className="text-5xl">🫥</p>
+          <p className="text-lg font-bold">No photos yet</p>
+          <Link href="/upload" className="btn btn-lg btn-primary">
+            📸 Upload the first one
+          </Link>
+        </div>
+      ) : (
+        <ArenaGrid key={sort} images={ordered} signedIn={signedIn} viewerId={viewerId} />
       )}
-
-      {leaders.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Hall of fame</h2>
-          <ol className="mt-3 grid gap-3 sm:grid-cols-3">
-            {leaders.map((c, i) => (
-              <li key={c.id} className="animate-rise" style={{ animationDelay: `${i * 90}ms` }}>
-                <Link
-                  href={`/gallery/${c.image.id}`}
-                  className="flex h-full gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={c.image.public_url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-                  <div className="min-w-0">
-                    <p className="text-xl leading-none">{MEDALS[i] ?? "🏅"}</p>
-                    <p className="mt-1 line-clamp-2 text-sm font-medium">{c.text}</p>
-                    <p className="text-xs font-bold text-primary">
-                      +{c.score} · 👍 {c.upvotes}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      <section className="mt-10">
-        {error ? (
-          <p className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-800">
-            Could not load the gallery: {error}
-          </p>
-        ) : images.length === 0 ? (
-          <div className="rounded-3xl border-4 border-dashed border-border p-16 text-center">
-            <p className="text-5xl">🫥</p>
-            <p className="mt-4 text-lg font-semibold">Nothing to laugh at yet</p>
-            <p className="mt-1 text-muted">Be the first to upload a photo and let the AI take a swing.</p>
-            <Link
-              href="/upload"
-              className="mt-6 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-            >
-              Upload a photo
-            </Link>
-          </div>
-        ) : (
-          <div className="columns-1 gap-5 sm:columns-2 lg:columns-3">
-            {images.map((image, i) => (
-              <MemeCard key={image.id} image={image} index={i} signedIn={signedIn} viewerId={viewerId} />
-            ))}
-          </div>
-        )}
-      </section>
     </main>
   );
 }

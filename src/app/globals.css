@@ -1,16 +1,21 @@
 @import "tailwindcss";
 
+/* `short:` = landscape phones and other short windows; layouts go side by side. */
+@custom-variant short (@media (max-height: 520px));
+
 /* Warm "comedy club" palette: cream background, tomato primary, amber accent. */
 :root {
   --background: #fff8ef;
   --foreground: #221a16;
   --card: #ffffff;
-  --border: #f0dfcc;
-  --muted: #7a6a5e;
+  --border: #ead6c1;
+  --muted: #6f5f53;
   --primary: #d9482b;
   --primary-foreground: #ffffff;
   --accent: #f5b400;
   --accent-foreground: #3a2a00;
+  --up: #15803d;
+  --down: #be123c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -18,12 +23,14 @@
     --background: #1b1411;
     --foreground: #f7efe6;
     --card: #261d19;
-    --border: #3d2f29;
-    --muted: #b9a89b;
+    --border: #45352d;
+    --muted: #c2b2a5;
     --primary: #e2593b;
     --primary-foreground: #ffffff;
     --accent: #f5b400;
     --accent-foreground: #2a1e00;
+    --up: #22c55e;
+    --down: #fb7185;
   }
 }
 
@@ -37,13 +44,22 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-up: var(--up);
+  --color-down: var(--down);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-meme: var(--font-anton);
   --animate-pop: pop 0.45s ease-out;
   /* "backwards" (not "both") so the animation lets go of transform/opacity
      when it ends; Rate mode drives those with inline styles. */
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* The app is a single screen: the page itself never scrolls. Content is sized
+   to fit, and longer lists page with Prev/Next instead of scrolling. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -52,32 +68,40 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Classic meme lettering: big, white, with a hard black outline. */
-.meme-text {
-  font-family: var(--font-anton), Impact, "Arial Black", sans-serif;
-  font-size: clamp(1.1rem, 3.2vw, 2.2rem);
-  line-height: 1.1;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: #fff;
-  text-shadow:
-    -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000,
-    0 3px 6px rgba(0, 0, 0, 0.6);
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-.meme-text.meme-sm {
-  font-size: 1rem;
-}
-
-/* Card-sized memes scale with the card (needs an @container parent), so a
-   long joke never buries the whole photo on wide screens. */
-.meme-text.meme-card {
-  font-size: clamp(1.05rem, 6.5cqi, 1.9rem);
+/* ---- Buttons: big, solid, obvious ------------------------------------- */
+@layer components {
+  .btn {
+    @apply inline-flex h-11 shrink-0 select-none items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold
+      shadow-sm transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50
+      focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary;
+  }
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:brightness-110;
+  }
+  .btn-secondary {
+    @apply border-2 border-foreground/15 bg-card text-foreground hover:border-primary hover:text-primary;
+  }
+  .btn-accent {
+    @apply bg-accent text-accent-foreground hover:brightness-105;
+  }
+  .btn-sm {
+    @apply h-9 rounded-xl px-3 text-xs;
+  }
+  .btn-lg {
+    @apply h-14 rounded-2xl px-7 text-base;
+  }
 }
 
 @keyframes pop {
   0% { transform: scale(1); }
-  40% { transform: scale(1.35) rotate(-6deg); }
+  40% { transform: scale(1.3) rotate(-6deg); }
   100% { transform: scale(1); }
 }
 

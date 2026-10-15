@@ -7,11 +7,11 @@ import { prettyModel, type JokeStyle } from "@/lib/joke-styles";
 
 type Step = "idle" | "uploading" | "describing" | "described" | "captioned" | "saving" | "done" | "error";
 
-const STEPS: { key: Step; label: string; detail: string; emoji: string }[] = [
-  { key: "uploading", label: "Uploading", detail: "Shrinking and sending your photo", emoji: "📤" },
-  { key: "describing", label: "Looking", detail: "A vision model studies the picture and describes it", emoji: "👀" },
-  { key: "captioned", label: "Writing jokes", detail: "The description goes to a second prompt that writes jokes", emoji: "✍️" },
-  { key: "saving", label: "Saving", detail: "Image and captions go into Supabase", emoji: "💾" },
+const STEPS: { key: Step; label: string; emoji: string }[] = [
+  { key: "uploading", label: "Upload", emoji: "📤" },
+  { key: "describing", label: "Look", emoji: "👀" },
+  { key: "captioned", label: "Joke", emoji: "✍️" },
+  { key: "saving", label: "Save", emoji: "💾" },
 ];
 
 const ORDER: Step[] = ["idle", "uploading", "describing", "described", "captioned", "saving", "done"];
@@ -141,7 +141,7 @@ export default function UploadStudio() {
         }
       }
       if (!finalId) throw new Error("The server did not finish saving.");
-      setTimeout(() => router.push(`/gallery/${finalId}?new=1`), 900);
+      setTimeout(() => router.push(`/gallery/${finalId}?new=1`), 700);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setStep("error");
@@ -149,11 +149,12 @@ export default function UploadStudio() {
   };
 
   const busy = step !== "idle" && step !== "error" && step !== "done";
+  const current = STEPS.find((s) => s.key === step || (s.key === "describing" && step === "described"));
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr]">
-      {/* Left: dropzone / preview */}
-      <div>
+    <div className="flex min-h-0 flex-1 flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      {/* Left: dropzone / preview + controls */}
+      <div className="flex min-h-0 flex-1 flex-col gap-3 max-lg:short:grid max-lg:short:grid-cols-2 max-lg:short:grid-rows-[1fr_auto_auto]">
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -164,11 +165,10 @@ export default function UploadStudio() {
           onClick={() => !busy && inputRef.current?.click()}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
-          className={`relative grid min-h-80 cursor-pointer place-items-center overflow-hidden rounded-3xl border-4 border-dashed transition ${
-            dragging
-              ? "scale-[1.01] border-primary bg-primary/10"
-              : "border-border bg-card hover:border-primary/60"
+          aria-label={preview ? "Choose a different photo" : "Choose a photo to upload"}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && !busy && inputRef.current?.click()}
+          className={`relative min-h-24 flex-1 cursor-pointer overflow-hidden rounded-3xl border-4 border-dashed transition max-lg:short:row-span-3 max-lg:short:h-full ${
+            dragging ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/60"
           } ${busy ? "cursor-wait" : ""}`}
         >
           <input
@@ -181,123 +181,96 @@ export default function UploadStudio() {
           {preview ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="" className="max-h-130 w-full object-contain" />
-              {captions[0] && (
-                <div className="meme-text pointer-events-none absolute inset-x-0 top-0 animate-rise p-4 text-center">
-                  {captions[0]}
-                </div>
-              )}
+              <img src={preview} alt="" className="absolute inset-0 h-full w-full bg-black object-contain" />
               {busy && <div className="scan-line pointer-events-none absolute inset-x-0 h-24" />}
             </>
           ) : (
-            <div className="p-10 text-center">
-              <div className="text-6xl">🖼️</div>
-              <p className="mt-4 text-lg font-semibold">Drop a photo here</p>
-              <p className="mt-1 text-sm text-muted">or click to choose one · JPEG, PNG, WebP, GIF</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <span className="text-6xl" aria-hidden>
+                🖼️
+              </span>
+              <span className="btn btn-lg btn-primary pointer-events-none">Choose a photo</span>
+              <span className="text-sm text-muted">or drop one here</span>
             </div>
           )}
         </div>
 
-        <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold">Joke style</p>
-          <StylePicker value={style} onChange={setStyle} disabled={busy} />
-        </div>
+        <StylePicker value={style} onChange={setStyle} disabled={busy} />
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled={!file || busy}
-            onClick={generate}
-            className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow transition hover:brightness-110 disabled:opacity-40"
-          >
-            {busy ? "Working…" : step === "done" ? "Done!" : "Write jokes about it ✨"}
-          </button>
+        <div className="flex shrink-0 gap-2">
           {file && !busy && (
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="rounded-full border border-border px-4 py-2 text-sm hover:border-primary"
-            >
-              Choose another
+            <button type="button" onClick={() => inputRef.current?.click()} className="btn btn-lg btn-secondary">
+              Change
             </button>
           )}
-          {error && (
-            <p role="alert" className="text-sm text-red-600">
-              {error}
-            </p>
-          )}
+          <button type="button" disabled={!file || busy} onClick={generate} className="btn btn-lg btn-primary flex-1">
+            {busy ? `${current?.emoji ?? "⏳"} ${current?.label ?? "Working"}…` : step === "done" ? "✓ Done!" : "✨ Write jokes"}
+          </button>
         </div>
+        {error && (
+          <p role="alert" className="shrink-0 text-sm font-semibold text-down">
+            {error}
+          </p>
+        )}
+        {/* Phones: the newest joke appears here instead of a side panel. */}
+        {captions.length > 0 && (
+          <p className="shrink-0 animate-rise rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold lg:hidden">
+            {captions[0]}
+          </p>
+        )}
       </div>
 
-      {/* Right: the prompt chain, live */}
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-bold">The prompt chain</h2>
-        <p className="mt-1 text-sm text-muted">
-          Two model calls, chained: the first one sees, the second one jokes.
-        </p>
-
-        <ol className="mt-6 space-y-4">
+      {/* Right (wide screens): the prompt chain, live */}
+      <div className="hidden min-h-0 flex-col gap-4 overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm lg:flex">
+        <ol className="grid shrink-0 grid-cols-4 gap-2">
           {STEPS.map((s) => {
-            const active =
-              step === s.key || (s.key === "describing" && step === "described");
+            const active = step === s.key || (s.key === "describing" && step === "described");
             const complete = rank(step) > rank(s.key) && !(s.key === "describing" && step === "described");
             return (
-              <li key={s.key} className="flex gap-3">
-                <div
-                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border text-lg transition ${
+              <li key={s.key} className="flex flex-col items-center gap-1 text-center">
+                <span
+                  className={`grid h-11 w-11 place-items-center rounded-full border-2 text-lg transition ${
                     complete
                       ? "border-primary bg-primary text-primary-foreground"
                       : active
                         ? "animate-pulse border-primary bg-primary/10"
-                        : "border-border bg-background text-muted"
+                        : "border-border bg-background"
                   }`}
                 >
                   {complete ? "✓" : s.emoji}
-                </div>
-                <div>
-                  <p className={`font-medium ${active || complete ? "" : "text-muted"}`}>{s.label}</p>
-                  <p className="text-sm text-muted">{s.detail}</p>
-                </div>
+                </span>
+                <span className={`text-xs font-bold ${active || complete ? "" : "text-muted"}`}>{s.label}</span>
               </li>
             );
           })}
         </ol>
 
-        {typed && (
-          <div className="mt-6 rounded-2xl bg-background p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              {prettyModel(models.see)} saw
-            </p>
-            <p className="mt-1 text-sm leading-relaxed">
+        {typed ? (
+          <div className="shrink-0 rounded-2xl bg-background p-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">{prettyModel(models.see)} saw</p>
+            <p className="mt-1 line-clamp-4 text-sm">
               {typed}
               {typed.length < description.length && <span className="animate-pulse">▍</span>}
             </p>
           </div>
-        )}
-
-        {captions.length > 0 && models.joke && (
-          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted">
-            {prettyModel(models.joke)} wrote
+        ) : (
+          <p className="flex flex-1 items-center justify-center text-center text-sm font-semibold text-muted">
+            Pick a photo and a style, then hit Write jokes.
           </p>
         )}
+
         {captions.length > 0 && (
-          <ul className="mt-2 space-y-2">
+          <ul className="min-h-0 space-y-2 overflow-hidden">
             {captions.map((c, i) => (
               <li
                 key={c}
-                className="animate-rise rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium"
+                className="animate-rise rounded-2xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold"
                 style={{ animationDelay: `${i * 120}ms` }}
               >
                 {c}
               </li>
             ))}
           </ul>
-        )}
-
-        {step === "done" && (
-          <p className="mt-4 animate-rise text-sm font-semibold text-primary">
-            Saved! Taking you to your picture so you can vote…
-          </p>
         )}
       </div>
     </div>

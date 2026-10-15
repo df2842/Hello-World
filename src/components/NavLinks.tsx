@@ -9,47 +9,34 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Primary navigation with the current page highlighted. */
+/** Primary navigation as button-like pills; the current page is solid white. */
 export default function NavLinks({ items, variant }: { items: NavItem[]; variant: "desktop" | "mobile" }) {
   const pathname = usePathname();
 
-  if (variant === "mobile") {
-    return (
-      <ul className="flex gap-1 overflow-x-auto px-4 pb-2 sm:hidden">
-        {items.map((item) => {
-          const active = isActive(pathname, item.href);
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 text-sm font-medium ${
-                  active ? "bg-white text-primary" : "bg-white/15"
-                }`}
-              >
-                <span aria-hidden>{item.emoji}</span>
-                {item.label}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    );
-  }
-
   return (
-    <ul className="hidden items-center gap-1 sm:flex">
+    <ul
+      className={
+        variant === "mobile"
+          ? "flex gap-1.5 px-3 pb-2 sm:hidden"
+          : "hidden items-center gap-1.5 sm:flex"
+      }
+    >
       {items.map((item) => {
         const active = isActive(pathname, item.href);
         return (
-          <li key={item.href}>
+          <li key={item.href} className={variant === "mobile" ? "min-w-0 flex-1" : ""}>
             <Link
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                active ? "bg-white text-primary shadow-sm" : "hover:bg-white/15"
+              className={`flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-xl text-sm font-bold transition ${
+                variant === "mobile" ? "px-1.5" : "px-3.5"
+              } ${
+                active ? "bg-white text-primary shadow" : "bg-white/15 hover:bg-white/25"
               }`}
             >
+              <span aria-hidden className={variant === "mobile" ? "hidden min-[430px]:inline" : ""}>
+                {item.emoji}
+              </span>
               {item.label}
             </Link>
           </li>

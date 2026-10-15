@@ -32,6 +32,15 @@ A Next.js app deployed on Vercel.
     burned in.
   - Sign-in returns you to the page you came from, the nav works on mobile, and
     a daily Vercel cron keeps the free Supabase project from pausing.
+- **Week 6:** TA feedback, plus a separate
+  [Admin Panel](https://github.com/df2842/Admin-Panel) for this database.
+  - **No scroll bar, fits to screen.** Every page fits the viewport. Longer
+    lists page with big Prev/Next buttons (or ← →) instead of scrolling, and
+    the number of cards per page adapts to the screen size.
+  - **Captions not on top of the image.** Jokes sit below each photo, and the
+    downloaded image puts the joke in a caption band under the photo.
+  - **Less text, clearer buttons.** Explanations were cut, and every action is
+    a large, solid, labeled button (👍 Funny / 👎 Meh, ← Prev / Next →).
 
 ## Setup
 

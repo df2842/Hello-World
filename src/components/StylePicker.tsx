@@ -2,7 +2,7 @@
 
 import { JOKE_STYLES, type JokeStyle } from "@/lib/joke-styles";
 
-/** Chip selector for the kind of jokes the model should write. */
+/** One row of chips for the kind of jokes the model should write. */
 export default function StylePicker({
   value,
   onChange,
@@ -13,7 +13,7 @@ export default function StylePicker({
   disabled?: boolean;
 }) {
   return (
-    <div role="radiogroup" aria-label="Joke style" className="flex flex-wrap gap-2">
+    <div role="radiogroup" aria-label="Joke style" className="no-scrollbar flex shrink-0 flex-wrap gap-2">
       {(Object.keys(JOKE_STYLES) as JokeStyle[]).map((key) => {
         const style = JOKE_STYLES[key];
         const selected = key === value;
@@ -25,10 +25,10 @@ export default function StylePicker({
             aria-checked={selected}
             disabled={disabled}
             onClick={() => onChange(key)}
-            className={`rounded-full border px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+            className={`h-10 whitespace-nowrap rounded-xl border-2 px-3 text-sm font-bold transition disabled:opacity-50 ${
               selected
                 ? "border-primary bg-primary text-primary-foreground shadow"
-                : "border-border bg-card hover:border-primary/60"
+                : "border-foreground/15 bg-card hover:border-primary"
             }`}
           >
             <span aria-hidden>{style.emoji}</span> {style.label}

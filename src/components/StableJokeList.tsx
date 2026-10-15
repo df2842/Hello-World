@@ -2,19 +2,18 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import MemeActions from "@/components/MemeActions";
-import MoreJokes from "@/components/MoreJokes";
+import FitGrid, { ROW_RULES } from "@/components/FitGrid";
+import MemeCard from "@/components/MemeCard";
 import VoteButtons from "@/components/VoteButtons";
-import { prettyModel } from "@/lib/joke-styles";
-import type { CaptionWithImage, ImageWithCaptions, ScoredCaption } from "@/lib/types";
+import type { CaptionWithImage, ImageWithCaptions } from "@/lib/types";
 
 /**
  * Votes re-render the page with re-ranked data. These lists keep the order
- * (and, optionally, the items) the viewer first saw, so the joke you just
+ * (and, optionally, the items) the viewer first saw, so the thing you just
  * voted on never jumps away or disappears mid-click. New items go at the end.
  * `removed` holds ids that were kept from the snapshot but are no longer live.
  */
-function useStable<T extends { id: string }>(items: T[], keepRemoved: boolean) {
+export function useStable<T extends { id: string }>(items: T[], keepRemoved: boolean) {
   const [snapshot] = useState(() => items);
   const current = new Map(items.map((i) => [i.id, i]));
   const firstSeen = new Set(snapshot.map((i) => i.id));
@@ -29,111 +28,121 @@ function useStable<T extends { id: string }>(items: T[], keepRemoved: boolean) {
   return { list: [...kept, ...items.filter((i) => !firstSeen.has(i.id))], removed };
 }
 
-const formatScore = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
-/** One of the viewer's pictures with every joke written for it (My Jokes). */
-export function PictureRow({ image }: { image: ImageWithCaptions }) {
-  const { list } = useStable(image.captions, false);
-  // Feature the joke that was on top when the page loaded, even after votes.
-  const [featuredId] = useState(() => image.captions[0]?.id ?? null);
-  const best = list.find((c) => c.id === featuredId) ?? list[0];
-  const votes = list.reduce((n, c) => n + c.upvotes + c.downvotes, 0);
-
+/** Arena photo cards in a stable order (a vote never reshuffles the grid). */
+export function ArenaGrid({
+  images,
+  signedIn,
+  viewerId,
+}: {
+  images: ImageWithCaptions[];
+  signedIn: boolean;
+  viewerId: string | null;
+}) {
+  const { list } = useStable(images, false);
   return (
-    <article className="grid gap-4 rounded-3xl border border-border bg-card p-4 shadow-sm md:grid-cols-[240px_1fr]">
-      <div>
-        <Link href={`/gallery/${image.id}`} className="relative block overflow-hidden rounded-2xl bg-black">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image.public_url} alt={image.description} className="block aspect-square w-full object-cover" />
-          {best && <p className="meme-text meme-sm absolute inset-x-0 top-0 line-clamp-4 p-2 text-center">{best.text}</p>}
-        </Link>
-        <p className="mt-2 text-xs text-muted">
-          {new Date(image.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            timeZone: "UTC",
-          })}{" "}
-          · {list.length} jokes · {votes} votes
-        </p>
-        {best && (
-          <div className="mt-2">
-            <MemeActions imageUrl={image.public_url} text={best.text} sharePath={`/gallery/${image.id}`} compact />
-          </div>
-        )}
-      </div>
-      <div>
-        <PictureJokes captions={list} />
-        <div className="mt-3">
-          <MoreJokes imageId={image.id} compact />
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function PictureJokes({ captions }: { captions: ScoredCaption[] }) {
-  return (
-    <ol className="space-y-2">
-      {captions.map((c, i) => (
-        <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3">
-          <p className="min-w-0 flex-1 text-sm">
-            <span className="mr-2 font-bold text-muted">{i === 0 && c.score > 0 ? "👑" : `${i + 1}.`}</span>
-            {c.text}
-          </p>
-          <VoteButtons captionId={c.id} upvotes={c.upvotes} downvotes={c.downvotes} myVote={c.myVote} signedIn size="sm" />
-        </li>
+    <FitGrid label="Photos" minItemHeight={250}>
+      {list.map((image) => (
+        <MemeCard key={image.id} image={image} signedIn={signedIn} viewerId={viewerId} />
       ))}
-    </ol>
+    </FitGrid>
   );
 }
+
+/** The viewer's photos as cards: photo on top, best joke below. */
+export function PhotoGrid({ images, empty }: { images: ImageWithCaptions[]; empty: ReactNode }) {
+  if (images.length === 0) return <>{empty}</>;
+  return (
+    <FitGrid label="My photos" minItemHeight={200}>
+      {images.map((image) => {
+        const best = image.captions[0];
+        const ups = image.captions.reduce((n, c) => n + c.upvotes, 0);
+        const downs = image.captions.reduce((n, c) => n + c.downvotes, 0);
+        return (
+          <Link
+            key={image.id}
+            href={`/gallery/${image.id}`}
+            className="group flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:border-primary"
+          >
+            <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={image.public_url}
+                alt={image.description}
+                className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+              />
+            </div>
+            <div className="shrink-0 space-y-1 p-3">
+              <p className="line-clamp-2 min-h-[2.75rem] font-semibold leading-snug">{best?.text ?? "No jokes yet."}</p>
+              <p className="flex items-center justify-between gap-2 text-sm font-bold">
+                <span>
+                  <span className="text-up">👍 {ups}</span> <span className="ml-2 text-down">👎 {downs}</span>
+                </span>
+                <span className="text-primary">Open →</span>
+              </p>
+            </div>
+          </Link>
+        );
+      })}
+    </FitGrid>
+  );
+}
+
+/** Height of one joke row, kept in sync with the row markup below. */
+const JOKE_ROW_HEIGHT = 124;
 
 /**
- * Flat list of jokes across pictures, each with its thumbnail. Shows `empty`
- * only if there was nothing to show when the page first loaded, so removing
- * your last vote doesn't yank the list away.
+ * Jokes across photos, one fixed-height row each: thumbnail, the joke (up to
+ * three lines, full width), then score and 👍/👎. Shows `empty` only if there
+ * was nothing when the page first loaded, so removing your last vote doesn't
+ * yank the list away.
  */
-export function JokeList({
+export function JokeRows({
   jokes,
   empty,
-  header,
-  showRank = false,
   keepRemoved = false,
 }: {
   jokes: CaptionWithImage[];
   empty: ReactNode;
-  header?: ReactNode;
-  showRank?: boolean;
   keepRemoved?: boolean;
 }) {
   const { list, removed } = useStable(jokes, keepRemoved);
   if (list.length === 0) return <>{empty}</>;
 
   return (
-    <>
-      {header}
-      <ol className="space-y-2">
-      {list.map((c, i) => {
+    <FitGrid label="Jokes" rules={ROW_RULES} rowHeight={JOKE_ROW_HEIGHT}>
+      {list.map((c) => {
         // A kept row whose vote was removed: take that vote out of its score.
         const score = removed.has(c.id) ? c.score - c.myVote : c.score;
         return (
-          <li key={c.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
-            {showRank && <span className="w-6 text-center text-sm font-bold text-muted">{i + 1}</span>}
-            <Link href={`/gallery/${c.image.id}`} className="shrink-0">
+          <div
+            key={c.id}
+            className="grid h-full w-full grid-cols-[3.5rem_minmax(0,1fr)] gap-3 overflow-hidden rounded-2xl border border-border bg-card p-2.5 shadow-sm"
+          >
+            <Link href={`/gallery/${c.image.id}`} className="shrink-0" aria-label="Open photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={c.image.public_url} alt={c.image.description} className="h-14 w-14 rounded-xl object-cover" />
             </Link>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">{c.text}</p>
-              <p className="text-xs text-muted">
-                Score {formatScore(score)} · by {prettyModel(c.model)}
+            <div className="flex min-w-0 flex-col justify-between gap-1">
+              <p className="line-clamp-3 text-sm font-semibold leading-snug" title={c.text}>
+                {c.text}
               </p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-muted">Score {signed(score)}</span>
+                <VoteButtons
+                  captionId={c.id}
+                  upvotes={c.upvotes}
+                  downvotes={c.downvotes}
+                  myVote={c.myVote}
+                  signedIn
+                  size="sm"
+                />
+              </div>
             </div>
-            <VoteButtons captionId={c.id} upvotes={c.upvotes} downvotes={c.downvotes} myVote={c.myVote} signedIn size="sm" />
-          </li>
+          </div>
         );
       })}
-      </ol>
-    </>
+    </FitGrid>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { categoryStyle, type Joke } from "@/lib/jokes";
@@ -27,19 +28,12 @@ export default async function ProfilePage() {
   const joke = jokes.length ? jokes[seed % jokes.length] : null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-16">
-      <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent-foreground">
-        Members only
-      </span>
-      <h1 className="mt-4 text-4xl font-bold">
-        Welcome, {name.split(" ")[0]}!
+    <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-center px-4 py-3 sm:px-6">
+      <h1 className="text-3xl font-extrabold">
+        Hi, {name.split(" ")[0]}! <span className="text-base font-bold text-muted">· members only</span>
       </h1>
-      <p className="mt-2 text-muted">
-        This page is protected. You can only see it because you signed in with
-        Google.
-      </p>
 
-      <section className="mt-8 grid gap-6 sm:grid-cols-[auto_1fr]">
+      <section className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:gap-4">
         <div className="flex items-start">
           {avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -47,22 +41,17 @@ export default async function ProfilePage() {
               src={avatar}
               alt=""
               referrerPolicy="no-referrer"
-              className="h-24 w-24 rounded-2xl border-4 border-primary/20 shadow"
+              className="h-16 w-16 rounded-2xl border-4 border-primary/20 shadow sm:h-24 sm:w-24"
             />
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-primary/10 text-4xl">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-3xl sm:h-24 sm:w-24 sm:text-4xl">
               🙂
             </div>
           )}
         </div>
-        <dl className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <dl className="min-w-0 rounded-2xl border border-border bg-card px-4 py-2 shadow-sm">
           <Row label="Name" value={name} />
           <Row label="Email" value={user.email ?? "—"} />
-          <Row
-            label="Provider"
-            value={(user.app_metadata?.provider as string | undefined) ?? "google"}
-          />
-          <Row label="User ID" value={user.id} mono />
           <Row
             label="Last sign-in"
             value={
@@ -75,17 +64,26 @@ export default async function ProfilePage() {
       </section>
 
       {joke && (
-        <section className="mt-10 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-6">
-          <h2 className="text-lg font-semibold">Your members-only joke</h2>
+        <section className="mt-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-4">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-muted">Your members-only joke</h2>
           <span
             className={`mt-3 inline-block rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${categoryStyle(joke.category)}`}
           >
             {joke.category}
           </span>
-          <p className="mt-3 text-xl font-medium">{joke.setup}</p>
-          <p className="mt-2 text-lg text-muted">{joke.punchline}</p>
+          <p className="mt-2 text-lg font-bold">{joke.setup}</p>
+          <p className="mt-1 text-muted">{joke.punchline}</p>
         </section>
       )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link href="/me" className="btn btn-primary">
+          😂 My Jokes
+        </Link>
+        <Link href="/jokes" className="btn btn-secondary">
+          Jokes table
+        </Link>
+      </div>
     </main>
   );
 }
@@ -100,9 +98,9 @@ function Row({
   mono?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 border-b border-border py-2 last:border-0 sm:flex-row sm:gap-4">
-      <dt className="w-28 shrink-0 text-sm font-medium text-muted">{label}</dt>
-      <dd className={`break-all ${mono ? "font-mono text-sm" : ""}`}>{value}</dd>
+    <div className="flex flex-row gap-3 border-b border-border py-1.5 last:border-0">
+      <dt className="w-20 shrink-0 text-sm font-medium text-muted sm:w-28">{label}</dt>
+      <dd className={`min-w-0 truncate ${mono ? "font-mono text-sm" : ""}`}>{value}</dd>
     </div>
   );
 }

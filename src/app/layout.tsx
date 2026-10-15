@@ -1,6 +1,5 @@
-import type { Metadata } from "next";
-import { Anton, Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import NavBar from "@/components/NavBar";
 import "./globals.css";
 
@@ -14,40 +13,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const anton = Anton({
-  variable: "--font-anton",
-  weight: "400",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   title: "The Humor Project",
   description: "COMS E6998 - Design for Generative AI",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
+/**
+ * One-screen app shell: nav on top, the page fills exactly the rest of the
+ * viewport. Pages size their content to fit instead of scrolling.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${anton.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <body className="flex h-dvh flex-col">
         <NavBar />
-        {children}
-        <footer className="border-t border-border py-6 text-center text-xs text-muted">
-          <p>Built with Next.js, Supabase, Gemini Flash-Lite and Vercel</p>
-          <p className="mt-2 space-x-3">
-            <Link href="/jokes" className="hover:text-primary">
-              Week 2: Jokes table
-            </Link>
-            <Link href="/profile" className="hover:text-primary">
-              Week 3: Profile
-            </Link>
-            <a href="https://github.com/df2842/Hello-World" className="hover:text-primary">
-              Source on GitHub
-            </a>
-          </p>
-        </footer>
+        {/* Pages are built to fit; on an unusually tiny window a thin scrollbar
+            appears instead of hiding content. */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-width:thin]">{children}</div>
       </body>
     </html>
   );

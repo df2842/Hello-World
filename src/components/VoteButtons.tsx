@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { castVote } from "@/app/actions/votes";
 import type { Vote } from "@/lib/types";
@@ -12,6 +12,8 @@ type Props = {
   myVote: Vote;
   signedIn: boolean;
   size?: "sm" | "md" | "lg";
+  /** Stretch the two buttons to fill the row. */
+  stretch?: boolean;
   /** Called after the server confirms the vote. */
   onVoted?: (myVote: Vote) => void;
 };
@@ -24,10 +26,10 @@ function tally(upvotes: number, downvotes: number, from: Vote, to: Vote) {
 }
 
 /**
- * Thumbs up / thumbs down with live counts and optimistic updates.
- * Clicking your current vote again removes it (the server is told the exact
- * target state, never "toggle"). Visitors who are not signed in are sent to
- * the login page and brought back here afterwards.
+ * Two big, labeled buttons: 👍 Funny and 👎 Meh, each with its count.
+ * Optimistic updates; clicking your current vote again removes it (the
+ * server is told the exact target state, never "toggle"). Visitors who are
+ * not signed in go to the login page and come back here afterwards.
  */
 export default function VoteButtons({
   captionId,
@@ -36,16 +38,26 @@ export default function VoteButtons({
   myVote,
   signedIn,
   size = "md",
+  stretch = false,
   onVoted,
 }: Props) {
   const router = useRouter();
-  const pathname = usePathname();
   const [state, setState] = useState({ upvotes, downvotes, myVote });
+  // Follow fresh server values (e.g. after a refresh) whenever no vote of
+  // ours is in flight; React's "adjust state when props change" pattern.
+  const [seen, setSeen] = useState({ upvotes, downvotes, myVote });
   const [pop, setPop] = useState<Vote>(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const goSignIn = () => router.push(`/login?next=${encodeURIComponent(pathname || "/gallery")}`);
+  if (!pending && (seen.upvotes !== upvotes || seen.downvotes !== downvotes || seen.myVote !== myVote)) {
+    setSeen({ upvotes, downvotes, myVote });
+    setState({ upvotes, downvotes, myVote });
+  }
+
+  // Only called from click handlers, so reading window is safe; keeps ?sort etc.
+  const goSignIn = () =>
+    router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search || "/gallery")}`);
 
   const vote = (value: 1 | -1) => {
     if (!signedIn) return goSignIn();
@@ -63,7 +75,7 @@ export default function VoteButtons({
         result = await castVote(captionId, next);
       } catch {
         setState(prev);
-        setError("Couldn't reach the server. Check your connection and try again.");
+        setError("Couldn't save. Try again.");
         return;
       }
       if (!result.ok) {
@@ -77,59 +89,56 @@ export default function VoteButtons({
   };
 
   const sizes = {
-    sm: "h-8 gap-1 px-2.5 text-xs",
-    md: "h-9 gap-1.5 px-3 text-sm",
-    lg: "h-14 gap-2 px-6 text-lg",
+    sm: "h-10 gap-1.5 px-3 text-sm",
+    md: "h-12 gap-2 px-4 text-base",
+    lg: "h-14 gap-1.5 px-3 text-base sm:gap-2 sm:px-6 sm:text-lg",
   }[size];
 
-  const base = `inline-flex items-center rounded-full border font-semibold tabular-nums transition active:scale-95 disabled:cursor-wait ${sizes}`;
+  const base = `inline-flex items-center justify-center rounded-2xl border-2 font-bold tabular-nums shadow-sm transition active:scale-95 disabled:cursor-wait focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary ${sizes} ${
+    stretch ? "min-w-0 flex-1" : ""
+  }`;
   const hint = signedIn ? undefined : "Sign in to vote";
 
   return (
-    <div className="inline-flex flex-col items-start gap-1">
-      <div className="inline-flex items-center gap-2" role="group" aria-label="Rate this joke">
+    <div className={`flex flex-col gap-1 ${stretch ? "w-full" : ""}`}>
+      <div className={`flex items-center gap-2 ${stretch ? "w-full" : ""}`} role="group" aria-label="Rate this joke">
         <button
           type="button"
           onClick={() => vote(1)}
           disabled={pending}
           aria-pressed={state.myVote === 1}
-          aria-label={`Upvote (${state.upvotes})`}
-          title={hint ?? (state.myVote === 1 ? "Remove upvote" : "Upvote: this is funny")}
+          aria-label={`Funny, upvote (${state.upvotes})`}
+          title={hint ?? (state.myVote === 1 ? "Remove your upvote" : "Funny")}
           className={`${base} ${
             state.myVote === 1
-              ? "border-emerald-600 bg-emerald-600 text-white shadow"
-              : "border-border bg-card hover:border-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300"
+              ? "border-up bg-up text-white"
+              : "border-up/50 bg-up/10 text-up hover:border-up hover:bg-up/20"
           } ${pop === 1 ? "animate-pop" : ""}`}
         >
           <span aria-hidden>👍</span>
-          {size === "lg" && <span>Funny</span>}
-          <span>{state.upvotes}</span>
+          {size !== "sm" && <span>Funny</span>}
+          <span className="rounded-lg bg-black/10 px-1.5">{state.upvotes}</span>
         </button>
         <button
           type="button"
           onClick={() => vote(-1)}
           disabled={pending}
           aria-pressed={state.myVote === -1}
-          aria-label={`Downvote (${state.downvotes})`}
-          title={hint ?? (state.myVote === -1 ? "Remove downvote" : "Downvote: not funny")}
+          aria-label={`Meh, downvote (${state.downvotes})`}
+          title={hint ?? (state.myVote === -1 ? "Remove your downvote" : "Meh")}
           className={`${base} ${
             state.myVote === -1
-              ? "border-rose-600 bg-rose-600 text-white shadow"
-              : "border-border bg-card hover:border-rose-500 hover:text-rose-700 dark:hover:text-rose-300"
+              ? "border-down bg-down text-white"
+              : "border-down/50 bg-down/10 text-down hover:border-down hover:bg-down/20"
           } ${pop === -1 ? "animate-pop" : ""}`}
         >
           <span aria-hidden>👎</span>
-          {size === "lg" && <span>Meh</span>}
-          <span>{state.downvotes}</span>
+          {size !== "sm" && <span>Meh</span>}
+          <span className="rounded-lg bg-black/10 px-1.5">{state.downvotes}</span>
         </button>
       </div>
-      {!signedIn && size !== "lg" && (
-        <button type="button" onClick={goSignIn} className="text-xs text-muted hover:text-primary">
-          Sign in to vote
-        </button>
-      )}
       {error && (
-        <span role="alert" className="text-xs text-red-600">
+        <span role="alert" className="text-xs font-medium text-down">
           {error}
         </span>
       )}
